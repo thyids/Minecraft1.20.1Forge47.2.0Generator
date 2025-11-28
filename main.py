@@ -4,7 +4,7 @@ import zipfile
 import os
 
 
-def change(Name, zh, mod_id, authors, description="这是1个mod"):
+def change(Name, zh, mod_id, authors, description="这是1个mod，请自行探索"):
     java = """package com.thyids.%s;
 import com.mojang.logging.LogUtils;
 import com.thyids.%s.item.ModItems;
@@ -265,9 +265,11 @@ description=\"\"\"%s\"\"\"
     with open(f"project\\{Name}\\src\\main\\java\\com\\thyids\\test\\item\\ModItems.java", "w", encoding="utf-8") as f:
         f.write(ModItems)
 
-    with open(f"project\\{Name}\\src\\main\\java\\com\\thyids\\test\\item\\ModCreativeModeTabs.java", "w", encoding="utf-8") as f:
+    with open(f"project\\{Name}\\src\\main\\java\\com\\thyids\\test\\item\\ModCreativeModeTabs.java", "w",
+              encoding="utf-8") as f:
         f.write(ModTabs)
-    with open(f"project\\{Name}\\src\\main\\java\\com\\thyids\\test\\block\\ModBlocks.java", "w", encoding="utf-8") as f:
+    with open(f"project\\{Name}\\src\\main\\java\\com\\thyids\\test\\block\\ModBlocks.java", "w",
+              encoding="utf-8") as f:
         f.write(ModBlocks)
     # 指定文件夹的当前路径和新路径
     old_folder = os.getcwd() + r"\project\%s\src\main\java\com\thyids\test" % Name
@@ -278,9 +280,9 @@ description=\"\"\"%s\"\"\"
 
     # 指定文件的当前路径和新路径
     old_file = os.getcwd() + r"\project\%s\src\main\java\com\thyids\%s\Test.java" % (Name,
-                                                                                                             mod_id)
+                                                                                     mod_id)
     new_file = os.getcwd() + r"\project\%s\src\main\java\com\thyids\%s\%s.java" % (Name, mod_id,
-                                                                                                           Name)
+                                                                                   Name)
 
     # 使用os.rename()函数进行重命名
     os.rename(old_file, new_file)
@@ -299,11 +301,18 @@ description=\"\"\"%s\"\"\"
     # 使用os.rename()函数进行重命名
     os.rename(old_folder, new_folder)
 
+    # 指定文件夹的当前路径和新路径
+    old_folder = os.getcwd() + r"\project\%s\src\main\resources\data\test" % Name
+    new_folder = os.getcwd() + r"\project\%s\src\main\resources\data\%s" % (Name, mod_id)
+
+    # 使用os.rename()函数进行重命名
+    os.rename(old_folder, new_folder)
+
 def unzip(file):
     try:
         print("正在生成基础包（大约0-1分钟）")
-        with zipfile.ZipFile(os.getcwd()+"\\project.zip", "r") as zip_ref:
-            zip_ref.extractall(os.getcwd()+f"\\project\\{file}")
+        with zipfile.ZipFile(os.getcwd() + "\\project.zip", "r") as zip_ref:
+            zip_ref.extractall(os.getcwd() + f"\\project\\{file}")
         print("生成基础包完成")
     except Exception as e:
         print("解压失败:", e)
@@ -315,7 +324,7 @@ def readlist():
 
 def writelist(x, Zhx, modid, Author):
     NameDict = readlist()
-    NameDict[x] = {"name":Zhx, "mod_id":modid, "auther":Author, "tabs":{}}
+    NameDict[x] = {"name": Zhx, "mod_id": modid, "auther": Author, "tabs": {}}
     with open('NameList.json', 'w') as f:
         json.dump(NameDict, f, ensure_ascii=False)
 
@@ -336,7 +345,7 @@ def relist(x, zh_tab="", tab_id="", zhx="", mi="", author=""):
     with open('NameList.json', 'w') as f:
         json.dump(NameDict, f, ensure_ascii=False)
 
-def delatelist(x):
+def deletelist(x):
     NameDict = readlist()
     del NameDict[x]
     with open('NameList.json', 'w') as f:
@@ -361,8 +370,20 @@ def change_en_us(mod_id, param, b_name):
               encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
+def delete_en_us(mod_id, param):
+    with open("project\\%s\\src\\main\\resources\\assets\\%s\\lang\\en_us.json" % (mod_id, mod_id), "r",
+              encoding="utf-8") as file:
+        data = json.load(file)
+
+    del data[param]
+
+    with open("project\\%s\\src\\main\\resources\\assets\\%s\\lang\\en_us.json" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
 def insert_item(mod_id, item_name, item, path, tabs="INGREDIENTS"):
-    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "r", encoding="utf-8") as f:
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "r",
+              encoding="utf-8") as f:
         ModItems = f.readlines()
 
     for i in range(len(ModItems)):
@@ -372,9 +393,9 @@ def insert_item(mod_id, item_name, item, path, tabs="INGREDIENTS"):
                                 item.upper(), item))
             break
 
-    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "w", encoding="utf-8") as f:
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
         f.writelines(ModItems)
-
 
     if tabs == "INGREDIENTS":
         with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "r",
@@ -391,24 +412,31 @@ def insert_item(mod_id, item_name, item, path, tabs="INGREDIENTS"):
         with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "w",
                   encoding="utf-8") as f:
             f.writelines(ModItems)
+    elif tabs == "NULL":
+        os.system("copy %s %s" % (path,
+                                  "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\item\\%s.png" % (mod_id,
+                                                                                                             mod_id,
+                                                                                                             item)))
+        return
     else:
-        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "r",
+        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+                  "r",
                   encoding="utf-8") as f:
             ModCreativeModeTabs = f.readlines()
 
         for i in range(len(ModCreativeModeTabs)):
             if "pOutput.accept" in ModCreativeModeTabs[i] or ModCreativeModeTabs[i] in "pOutput.accept":
                 ModCreativeModeTabs.insert(i,
-                                "\n        pOutput.accept(ModItems.%s.get());\n" % (
-                                    item.upper()))
+                                           "\n        pOutput.accept(ModItems.%s.get());\n" % (
+                                               item.upper()))
                 break
 
-        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "w",
+        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+                  "w",
                   encoding="utf-8") as f:
             f.writelines(ModCreativeModeTabs)
 
-    change_en_us(mod_id,"item.%s.%s" % (mod_id, item),item_name)
-
+    change_en_us(mod_id, "item.%s.%s" % (mod_id, item), item_name)
 
     data = {
         "parent": "item/generated",
@@ -417,12 +445,14 @@ def insert_item(mod_id, item_name, item, path, tabs="INGREDIENTS"):
         }
     }
 
-    with open("project\\%s\\src\\main\\resources\\assets\\%s\\models\\item\\%s.json" % (mod_id, mod_id, item), "w", encoding="utf-8") as f:
+    with open("project\\%s\\src\\main\\resources\\assets\\%s\\models\\item\\%s.json" % (mod_id, mod_id, item), "w",
+              encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
-    os.system("copy %s %s" % (path, "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\item\\%s.png" % (mod_id, mod_id, item)))
+    os.system("copy %s %s" % (path,
+                              "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\item\\%s.png" % (mod_id, mod_id,
+                                                                                                         item)))
     # build(mod_id)
-
 
 def insert_block(mod_id, block_name, block_id, path, tabs):
     with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\block\\ModBlocks.java" % (mod_id, mod_id), "r",
@@ -430,11 +460,13 @@ def insert_block(mod_id, block_name, block_id, path, tabs):
         ModBlocks = f.readlines()
 
     for i in range(len(ModBlocks)):
-        if ModBlocks[i] == "    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, %s.MOD_ID);\n" % mod_id:
+        if ModBlocks[
+            i] == "    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, %s.MOD_ID);\n" % mod_id:
             ModBlocks.insert(i + 1,
-                            """
+                             """
     public static final RegistryObject<Block> %s = registerBlock("%s",
-            () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).sound(SoundType.AMETHYST)));""" % (block_id.upper(), block_id))
+            () -> new Block(BlockBehaviour.Properties.copy(Blocks.IRON_BLOCK).sound(SoundType.AMETHYST)));""" % (
+                                 block_id.upper(), block_id))
             break
 
     with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\block\\ModBlocks.java" % (mod_id, mod_id), "w",
@@ -460,7 +492,6 @@ def insert_block(mod_id, block_name, block_id, path, tabs):
               encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
-
     data = {
         "variants": {
             "": {
@@ -474,8 +505,9 @@ def insert_block(mod_id, block_name, block_id, path, tabs):
         json.dump(data, f, ensure_ascii=False)
 
     os.system("copy %s %s" % (path,
-                              "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\block\\%s.png" % (mod_id, mod_id,
-                                                                                                         block_id)))
+                              "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\block\\%s.png" % (mod_id,
+                                                                                                          mod_id,
+                                                                                                          block_id)))
 
     if tabs == "BUILDING_BLOCKS":
         with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "r",
@@ -493,61 +525,260 @@ def insert_block(mod_id, block_name, block_id, path, tabs):
                   encoding="utf-8") as f:
             f.writelines(ModItems)
     else:
-        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "r",
+        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+                  "r",
                   encoding="utf-8") as f:
             ModCreativeModeTabs = f.readlines()
 
         for i in range(len(ModCreativeModeTabs)):
             if "pOutput.accept" in ModCreativeModeTabs[i] or ModCreativeModeTabs[i] in "pOutput.accept":
                 ModCreativeModeTabs.insert(i,
-                                "\n        pOutput.accept(ModBlocks.%s.get());\n" % (
-                                    block_id.upper()))
+                                           "\n        pOutput.accept(ModBlocks.%s.get());\n" % (
+                                               block_id.upper()))
                 break
 
-        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "w",
+        with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+                  "w",
                   encoding="utf-8") as f:
             f.writelines(ModCreativeModeTabs)
 
-
-    change_en_us(mod_id,"block.%s.%s" % (mod_id, block_id),block_name)
+    change_en_us(mod_id, "block.%s.%s" % (mod_id, block_id), block_name)
 
     # build(mod_id)
 
-
-def insert_bar(mod_id, bar_name, bar, itemid, tabs="INGREDIENTS"):
+def insert_bar(mod_id, bar_name, bar, itemid):
     relist(mod_id, bar_name, bar)
 
-    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "r", encoding="utf-8") as f:
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "r",
+              encoding="utf-8") as f:
         ModItems = f.readlines()
 
-    for i in range(len(ModItems)):
-        if ModItems[i] == "            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, %s.MOD_ID);\n" % mod_id:
-            ModItems.insert(i + 1,
-                            """
-    public static final RegistryObject<CreativeModeTab> %s = CREATIVE_MODE_TABS.register("%s", ()-> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.%s.get())).title(Component.translatable("creativetab.%s")).displayItems((pParameters, pOutput) -> {
-        pOutput.accept(ModItems.%s.get());
-    }).build());""" % (
-                                bar.upper(), bar, itemid.upper(), bar, itemid.upper()))
-            break
+    if (itemid[0] == 'i' and itemid[1] == 't' and itemid[2] == 'e' and itemid[3] == 'm' and itemid[4] == '.'):
+        itemid = itemid[5:]
+        for i in range(len(ModItems)):
+            if ModItems[
+                i] == "            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, %s.MOD_ID);\n" % mod_id:
+                ModItems.insert(i + 1,
+                                """
+        public static final RegistryObject<CreativeModeTab> %s = CREATIVE_MODE_TABS.register("%s", ()-> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.%s.get())).title(Component.translatable("creativetab.%s")).displayItems((pParameters, pOutput) -> {
+            pOutput.accept(ModItems.%s.get());
+        }).build());""" % (
+                                    bar.upper(), bar, itemid.upper(), bar, itemid.upper()))
+                break
+    elif (itemid[0] == 'b' and itemid[1] == 'l' and itemid[2] == 'o' and itemid[3] == 'c' and itemid[4] == 'k' and itemid[5] == '.'):
+        insert_item(mod_id, "", bar + "_tab_item", "project\\%s\\src\\main\\resources\\assets\\%s\\textures\\block\\%s.png" % (mod_id, mod_id, itemid[6:]), "NULL")
+        itemid = bar + "_tab_item"
+        for i in range(len(ModItems)):
+            if ModItems[
+                i] == "            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, %s.MOD_ID);\n" % mod_id:
+                ModItems.insert(i + 1,
+                                """
+        public static final RegistryObject<CreativeModeTab> %s = CREATIVE_MODE_TABS.register("%s", ()-> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.%s.get())).title(Component.translatable("creativetab.%s")).displayItems((pParameters, pOutput) -> {
+            pOutput.accept(ModItems.%s.get());
+        }).build());""" % (
+                                    bar.upper(), bar, itemid.upper(), bar, itemid.upper()))
+                break
+    elif itemid.count("\\") > 0:
+        insert_item(mod_id, "", bar + "_tab_item", itemid, "NULL")
+        itemid = bar + "_tab_item"
+        for i in range(len(ModItems)):
+            if ModItems[
+                i] == "            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, %s.MOD_ID);\n" % mod_id:
+                ModItems.insert(i + 1,
+                                """
+        public static final RegistryObject<CreativeModeTab> %s = CREATIVE_MODE_TABS.register("%s", ()-> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.%s.get())).title(Component.translatable("creativetab.%s")).displayItems((pParameters, pOutput) -> {
+            pOutput.accept(ModItems.%s.get());
+        }).build());""" % (
+                                    bar.upper(), bar, itemid.upper(), bar, itemid.upper()))
+                break
 
-    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "w", encoding="utf-8") as f:
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
         f.writelines(ModItems)
 
     change_en_us(mod_id, "creativetab.%s" % bar, bar_name)
     # build(mod_id)
 
-
 def select_bar(na, zh, en):
     print("1." + zh)
     bar_list = readlist()
-    bar_list = list(bar_list[list(bar_list.keys())[na-1]].values())[3]
+    bar_list = list(bar_list[list(bar_list.keys())[na - 1]].values())[3]
     for i in range(len(bar_list.keys())):
-        print(str(i+2) + "." + list(bar_list.keys())[i])
+        print(str(i + 2) + "." + list(bar_list.keys())[i])
     ind = int(input("请输入存放物品栏序号："))
     if ind == 1:
         return en
     else:
-        return list(bar_list.values())[ind-2]
+        return list(bar_list.values())[ind - 2]
+
+def insert_recipes(index, mod_id, ingredients, result, num, recipe_type):
+    if recipe_type == 2:
+        if index == 1:
+            data = {
+                "type": "minecraft:campfire_cooking",
+                "category": "food",
+                "cookingtime": ingredients[2],
+                "experience": ingredients[1],
+                "ingredient": {
+                    "item": "%s:%s" % (mod_id, ingredients[0]),
+                },
+                "result": "%s:%s" % (mod_id, result)
+            }
+            prefix = "cooked_"
+        elif index == 2:
+            data = {
+                "type": "minecraft:blasting",
+                "category": "misc",
+                "cookingtime": ingredients[2],
+                "experience": ingredients[1],
+                "group": result,
+                "ingredient": {
+                    "item": "%s:%s" % (mod_id, ingredients[0]),
+                },
+                "result": "%s:%s" % (mod_id, result)
+            }
+            prefix = "blasting_"
+        else:
+            data = {
+                "type": "minecraft:smelting",
+                "category": "blocks",
+                "cookingtime": ingredients[2],
+                "experience": ingredients[1],
+                "ingredient": {
+                    "item": "%s:%s" % (mod_id, ingredients[0]),
+                },
+                "result": "%s:%s" % (mod_id, result)
+            }
+            prefix = "smelting_"
+        with open("project\\%s\\src\\main\\resources\\data\\%s\\recipes\\%s.json" % (mod_id, mod_id,
+                                                                                     prefix + ingredients[
+                                                                                         0] + "_from_" + result), "w",
+                  encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        return
+    if index == 1:
+        data = {
+            "type": "minecraft:crafting_shapeless",
+            "category": "misc",
+            "ingredients": [],
+            "result": {
+                "item": "%s:%s" % (mod_id, result),
+                "count": num
+            }
+        }
+        for ingredient in ingredients:
+            data["ingredients"].append({"item": "%s:%s" % (mod_id, ingredient)})
+        ine = ingredients[0]
+    else:
+        data = {
+            "type": "minecraft:crafting_shaped",
+            "category": "misc",
+            "pattern": ingredients[0],
+            "key": ingredients[1],
+            "result": {
+                "item": "%s:%s" % (mod_id, result),
+                "count": num
+            }
+        }
+        ine = ingredients[2]
+    with open("project\\%s\\src\\main\\resources\\data\\%s\\recipes\\%s.json" % (mod_id, mod_id,
+                                                                                 ine + "_from_" + result), "w",
+              encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
+def delete_item(mod_id, itemid):
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "r",
+              encoding="utf-8") as f:
+        ModItems = f.readlines()
+
+    for i in range(len(ModItems)):
+        if ModItems[
+            i] == '    public static final RegistryObject<Item> %s = ITEMS.register("%s", () -> new Item(new Item.Properties()));\n' % (
+                itemid.upper(), itemid):
+            ModItems.pop(i)
+            break
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModItems.java" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        f.writelines(ModItems)
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "r",
+              encoding="utf-8") as f:
+        ModItems = f.readlines()
+
+    for i in range(len(ModItems)):
+        if ModItems[i] == '            event.accept(ModItems.%s);\n' % itemid:
+            ModItems.pop(i - 1)
+            ModItems.pop(i - 1)
+            break
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        f.writelines(ModItems)
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "r",
+              encoding="utf-8") as f:
+        ModCreativeModeTabs = f.readlines()
+
+    for i in range(len(ModCreativeModeTabs)):
+        if "        pOutput.accept(ModItems.%s.get());\n" % itemid.upper() == ModCreativeModeTabs[i]:
+            ModCreativeModeTabs.pop(i)
+            break
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        f.writelines(ModCreativeModeTabs)
+
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\models\\item\\%s.json" % (mod_id, mod_id, itemid))
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\textures\\item\\%s.png" % (mod_id, mod_id, itemid))
+
+    delete_en_us(mod_id, "item.%s.%s" % (mod_id, itemid))
+
+def delete_block(mod_id, blockid):
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\block\\ModBlocks.java" % (mod_id, mod_id), "r",
+              encoding="utf-8") as f:
+        ModBlocks = f.readlines()
+
+    for i in range(len(ModBlocks)):
+        if ModBlocks[i] == '    public static final RegistryObject<Block> %s = registerBlock("%s",\n' % (blockid.upper(), blockid):
+            ModBlocks.pop(i)
+            break
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\block\\ModBlocks.java" % (mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        f.writelines(ModBlocks)
+
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\models\\block\\%s.json" % (mod_id, mod_id, blockid))
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\models\\item\\%s.json" % (mod_id, mod_id, blockid))
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\blockstates\\%s.json" % (mod_id, mod_id, blockid))
+    os.remove("project\\%s\\src\\main\\resources\\assets\\%s\\textures\\block\\%s.png" % (mod_id,mod_id,blockid))
+
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "r",
+              encoding="utf-8") as f:
+        ModItems = f.readlines()
+    for i in range(len(ModItems)):
+        if ModItems[i] == "        if(event.getTabKey() == CreativeModeTabs.%s){\n":
+            ModItems.pop(i)
+            ModItems.pop(i)
+            ModItems.pop(i)
+            break
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\%s.java" % (mod_id, mod_id, mod_id), "w",
+              encoding="utf-8") as f:
+        f.writelines(ModItems)
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+              "r",
+              encoding="utf-8") as f:
+        ModCreativeModeTabs = f.readlines()
+    for i in range(len(ModCreativeModeTabs)):
+        if ModCreativeModeTabs[i] == '        pOutput.accept(ModBlocks.%s.get());\n' % (blockid.upper()):
+            ModCreativeModeTabs.pop(i)
+            break
+    with open("project\\%s\\src\\main\\java\\com\\thyids\\%s\\item\\ModCreativeModeTabs.java" % (mod_id, mod_id),
+              "w",
+              encoding="utf-8") as f:
+        f.writelines(ModCreativeModeTabs)
+
+    delete_en_us(mod_id, "block.%s.%s" % (mod_id, blockid))
 
 if __name__ == '__main__':
     print("我的世界1.20.1Forge47.2.0生成器：\n1.创建项目\n2.删除项目\n3.编辑项目")
@@ -565,15 +796,16 @@ if __name__ == '__main__':
     if select == 2:
         ProjectList = readlist()
         for i in range(len(ProjectList.keys())):
-            print(str(i+1) + '.' + list(ProjectList.keys())[i])
+            print(str(i + 1) + '.' + list(ProjectList.keys())[i])
         ind = int(input("请输入序号："))
-        for i in range(len(list(ProjectList[list(ProjectList.keys())[ind-1]].keys()))-1):
-            print(list(ProjectList[list(ProjectList.keys())[ind-1]].keys())[i] + ': ' + list(ProjectList[list(ProjectList.keys())[ind-1]].values())[i])
+        for i in range(len(list(ProjectList[list(ProjectList.keys())[ind - 1]].keys())) - 1):
+            print(list(ProjectList[list(ProjectList.keys())[ind - 1]].keys())[i] + ': ' +
+                  list(ProjectList[list(ProjectList.keys())[ind - 1]].values())[i])
         if_ = input("请确认信息, 是否删除此项目?(Y/N)")
         if if_ == "Y":
-            delatelist(list(ProjectList.keys())[ind-1])
-            shutil.rmtree(os.getcwd() + "\\project\\" + list(ProjectList.keys())[ind-1])
-            print("成功删除项目: " + list(ProjectList.keys())[ind-1])
+            deletelist(list(ProjectList.keys())[ind - 1])
+            shutil.rmtree(os.getcwd() + "\\project\\" + list(ProjectList.keys())[ind - 1])
+            print("成功删除项目: " + list(ProjectList.keys())[ind - 1])
         else:
             print("您已取消删除操作")
     if select == 3:
@@ -583,35 +815,115 @@ if __name__ == '__main__':
         Name = int(input("请输入序号："))
         print("1.添加")
         print("2.删除")
-        print("3.修改")
+        print("3.修改（待制作）")
         print("4.构建")
-
+        modID = list(ProjectList[list(ProjectList.keys())[Name - 1]].values())[1]
         ind = int(input("请输入序号："))
 
         if ind == 1:
             print("1.物品")
             print("2.方块")
             print("3.物品栏")
+            print("4.配方")
             ind = int(input("请输入序号："))
             if ind == 1:
                 ZhName = input("请输入物品名称（中文）：")
                 item_id = input("请输入物品id（仅包括小写字母和下划线）：")
                 path_png = input("请输入材质文件路径（png格式）：")
                 bar = select_bar(Name, "原材料", "INGREDIENTS")
-                insert_item(list(ProjectList[list(ProjectList.keys())[Name-1]].values())[1], ZhName, item_id, path_png, bar)
+                insert_item(modID, ZhName, item_id, path_png, bar)
 
             elif ind == 2:
                 ZhName = input("请输入方块名称（中文）：")
                 block_id = input("请输入方块id（仅包括小写字母和下划线）：")
                 path_png = input("请输入材质文件路径（png格式）：")
                 bar = select_bar(Name, "建筑物品栏", "BUILDING_BLOCKS")
-                insert_block(list(ProjectList[list(ProjectList.keys())[Name - 1]].values())[1], ZhName, block_id, path_png, bar)
+                insert_block(modID, ZhName, block_id, path_png, bar)
 
             elif ind == 3:
                 ZhName = input("请输入物品烂名称（中文）：")
                 bar_id = input("请输入物品栏id（仅包括小写字母和下划线）：")
-                path_png = input("请输入材质名称（从之前的物品或材质获取）：")
-                insert_bar(list(ProjectList[list(ProjectList.keys())[Name - 1]].values())[1], ZhName, bar_id, path_png)
+                path_png = input("请输入材质名称（item.? 或者 png图片路径）：")
+                insert_bar(modID, ZhName, bar_id, path_png)
+
+            elif ind == 4:
+                print("1.工作台")
+                print("2.熔炉")
+                ind = int(input("请输入配方类型序号："))
+                if ind == 1:
+                    print("1.无规则合成")
+                    print("2.有规则合成")
+                    ind = int(input("请输入序号："))
+                    if ind == 1:
+                        Ingredients = input("请输入合成输入（id并英文“,”分割）：").split(",")
+                        Result = input("请输入合成结果（id）：")
+                        n = int(input("请输入结果输出数量："))
+                        insert_recipes(ind, modID, Ingredients, Result, n, 1)
+                    elif ind == 2:
+                        pattern = []
+                        key = {}
+                        item_list = []
+                        item_dict = {}
+                        latter = "A"
+                        item_ide = ""
+                        for i in range(3):
+                            row = ""
+                            for j in range(3):
+                                item_id = input(f"请输入第{i + 1}行，第{j + 1}个是什么（id/留空）：")
+                                if item_id == "":
+                                    row += " "
+                                    continue
+                                elif item_id not in item_list:
+                                    key[latter] = {"item": "%s:%s" % (
+                                        modID, item_id)}
+                                    item_dict[item_id] = latter
+                                    item_list.append(item_id)
+                                    row += latter
+                                    latter = chr(ord(latter) + 1)
+                                else:
+                                    row += item_dict[item_id]
+                                item_ide = item_id
+                            pattern.append(row)
+                        Result = input("请输入合成结果（id）：")
+                        n = int(input("请输入结果输出数量："))
+                        insert_recipes(ind, modID, (pattern, key, item_ide), Result, n, 1)
+                elif ind == 2:
+                    print("1.食物")
+                    print("2.矿石")
+                    print("3.其他")
+                    ind = input("请输入类型序号：")
+                    exp = input("获得经验值：")
+                    time = input("烧制时间：")
+                    if ind == 1:
+                        FoodId = input("请输入“输入食物id”:")
+                        Result = input("请输入“输出食物id”:")
+                        insert_recipes(ind, modID, (FoodId, exp, time), Result, 0, 2)
+                    elif ind == 2:
+                        OreId = input("请输入粗矿id：")
+                        BlockId = input("请输入矿石id：")
+                        insert_recipes(ind, modID,
+                                       (OreId, exp, time), BlockId, 0, 2)
+                    else:
+                        ItemId = input("请输入“输入物品id”:")
+                        Result = input("请输入“输出物品id”:")
+                        insert_recipes(ind, modID,
+                                       (ItemId, exp, time), Result, 0, 2)
+
+        elif ind == 2:
+            print("1.物品")
+            print("2.方块")
+            print("3.物品栏")
+            print("4.配方")
+            ind = int(input("请输入序号："))
+            if ind == 1:
+                itemId = input("请输入删除物品id：")
+                delete_item(modID, itemId)
+            elif ind == 2:
+                blockId = input("请输入删除方块id：")
+                delete_block(modID, blockId)
+
+        elif ind == 3:
+            pass
 
         elif ind == 4:
             build(list(ProjectList[list(ProjectList.keys())[Name - 1]].values())[1])
