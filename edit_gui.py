@@ -10,6 +10,7 @@ from tkinter import simpledialog as sdl
 import tkinter.messagebox as msgbox
 import project_class
 import ProjectTreeView
+import ai_sidebar
 
 code_root = None
 resource_root = None
@@ -19,61 +20,86 @@ def edit(project):
     def question(title, kwargs):
         q_root = tk.Tk()
         q_root.title(title)
+        q_root.attributes("-topmost", True)
 
         qqlist = []
-        for arg in kwargs.keys():
-            lbl = tk.Label(q_root, text=arg + ": ")
-            lbl.pack(expand=True)
+
+        top_frame = tk.Frame(q_root)
+        top_frame.pack(fill="x", padx=10, pady=5)
+
+        grid_frame = tk.Frame(q_root)
+        grid_frame.pack(pady=10)
+
+        grid_rows = {}
+
+        for arg, val in kwargs.items():
             text = tk.StringVar(q_root)
-            text.set("")
-            if kwargs[arg] == "text" or kwargs[arg].split("_")[0] == "open":
 
-                ent = tk.Entry(q_root, textvariable=text)
-                ent.pack(expand=True)
-                if kwargs[arg].split("_")[0] == "open":
-                    sp = kwargs[arg].split("_")
+            is_grid = "," in arg and arg.replace(",", "").isdigit()
 
-                    def open_file(sp=sp, text=text):
-                        path = fdl.askopenfilename(filetypes=[(sp[1], "*." + sp[2])],
-                                                   parent=q_root, title=title)
-                        text.set(path)
+            if is_grid:
+                r, c = map(int, arg.split(","))
+                if r not in grid_rows:
+                    grid_rows[r] = tk.Frame(grid_frame)
+                    grid_rows[r].pack()
+                target_frame = grid_rows[r]
+            else:
+                target_frame = top_frame
 
-                    btn = tk.Button(q_root, text="打开", command=lambda: threading.Thread(target=open_file).start())
-                    btn.pack(expand=True)
+            container = tk.Frame(target_frame)
+            if is_grid:
+                container.grid(row=0, column=c, padx=2, pady=2)
+            else:
+                container.pack(fill="x", anchor="w")
+
+            if not is_grid:
+                tk.Label(container, text=arg + ": ").pack(side="left")
+
+            if val == "text" or val.startswith("open"):
+                ent = tk.Entry(container, textvariable=text)
+                ent.pack(side="left", expand=True, fill="x")
+
+                if val.startswith("open"):
+                    sp = val.split("_")
+
+                    def make_open_file(t=text, s=sp):
+                        path = fdl.askopenfilename(filetypes=[(s[1], "*." + s[2])], title=title)
+                        if path: t.set(path)
+
+                    tk.Button(container, text="...",
+                              command=lambda: threading.Thread(target=make_open_file).start()).pack(side="left")
+
                 qqlist.append([arg, text])
-            elif kwargs[arg].split("/")[0] == "choose":
-                text.set(kwargs[arg].split("/")[1])
-                op = tk.OptionMenu(q_root, text, *kwargs[arg].split("/")[1:])
-                op.pack(expand=True)
+
+            elif val.startswith("choose"):
+                options = val.split("/")[1:]
+                text.set(options[0])
+                width = 10 if is_grid else 20
+                op = tk.OptionMenu(container, text, *options)
+                op.config(width=width)
+                op.pack(side="left")
                 qqlist.append([arg, text])
 
-        ans = {'no_no_no_no_no': 1}
+        ans = {'_cancelled': True}
 
         def yes():
-            for qlist in qqlist:
-                ans[qlist[0]] = qlist[1].get()
-                if ans[qlist[0]] == "":
-                    msgbox.showerror(title, f"{qlist[0]}不能为空")
+            for q_item in qqlist:
+                val_str = q_item[1].get()
+                if "," not in q_item[0] and val_str == "":
+                    msgbox.showerror("错误", f"{q_item[0]} 不能为空")
                     return
-            ans['no_no_no_no_no'] = 0
+                ans[q_item[0]] = val_str
+            ans['_cancelled'] = False
             q_root.destroy()
 
-        def no():
-            q_root.destroy()
-
-        yes_btn = tk.Button(q_root, text="确定", command=yes)
-        no_btn = tk.Button(q_root, text="取消", command=no)
-
-        yes_btn.pack(side="left")
-        no_btn.pack(side="right")
+        btn_frame = tk.Frame(q_root)
+        btn_frame.pack(fill="x", pady=10)
+        tk.Button(btn_frame, text="确定", command=yes, width=10, bg="#e1e1e1").pack(side="left", padx=20)
+        tk.Button(btn_frame, text="取消", command=q_root.destroy, width=10).pack(side="right", padx=20)
 
         q_root.mainloop()
 
-        if ans['no_no_no_no_no'] == 0:
-            del ans['no_no_no_no_no']
-            return ans
-        else:
-            return None
+        return None if ans.get('_cancelled') else {k: v for k, v in ans.items() if k != '_cancelled'}
 
     def change_en_us(param, b_name):
         with open(project.project_dir + "\\src\\main\\resources\\assets\\%s\\lang\\en_us.json" % project.mod_id, "r",
@@ -90,7 +116,6 @@ def edit(project):
         ins = ""
         for key in project.blocks.keys():
             ins += "/" + key
-        # 修改：方块应该放到"建筑方块"物品栏，而不是"原料"
         chinese_name, block_id, res_path, tabs = question("创建方块", {"中文名": "text", "方块id": "text",
                                                                        "材质文件": "open_16位材质文件_png",
                                                                        "物品栏": "choose/无/建筑方块" + ins}).values()
@@ -106,14 +131,12 @@ def edit(project):
 
         lbl2.configure(text=f"正在创建方块")
 
-        # 1. 在ModBlocks.java中添加方块注册
         with open(
                 project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\block\\ModBlocks.java",
                 "r",
                 encoding="utf-8") as f:
             ModBlocks = f.readlines()
 
-        # 查找插入位置 - 参考create_item的模式
         for i in range(len(ModBlocks)):
             if ModBlocks[
                 i] == f"    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, {project.mod_id.capitalize()}.MOD_ID);\n":
@@ -127,8 +150,6 @@ def edit(project):
                 encoding="utf-8") as f:
             f.writelines(ModBlocks)
 
-        # 2. 添加到创造模式标签（参考create_item的模式）
-        # 修改：方块应该放到"BUILDING_BLOCKS"而不是"INGREDIENTS"
         if tabs == "建筑方块":
             tabs = "BUILDING_BLOCKS"
             with open(
@@ -171,10 +192,8 @@ def edit(project):
                     encoding="utf-8") as f:
                 f.writelines(ModCreativeModeTabs)
 
-        # 3. 添加语言文件条目（参考create_item的模式）
         change_en_us("block.%s.%s" % (project.mod_id, block_id), chinese_name)
 
-        # 4. 创建方块模型JSON文件
         data = {
             "parent": "block/cube_all",
             "textures": {
@@ -189,7 +208,6 @@ def edit(project):
             json.dump(data, f, ensure_ascii=False)
         add_file_to_tree(f"assets\\{project.mod_id}\\models\\block\\{block_id}.json", resource_root)
 
-        # 5. 创建方块状态JSON文件
         blockstate_data = {
             "variants": {
                 "": {
@@ -205,7 +223,6 @@ def edit(project):
             json.dump(blockstate_data, f, ensure_ascii=False)
         add_file_to_tree(f"assets\\{project.mod_id}\\blockstates\\{block_id}.json", resource_root)
 
-        # 6. 创建物品模型JSON文件（方块物品）
         item_model_data = {
             "parent": "%s:block/%s" % (project.mod_id, block_id)
         }
@@ -217,7 +234,6 @@ def edit(project):
             json.dump(item_model_data, f, ensure_ascii=False)
         add_file_to_tree(f"assets\\{project.mod_id}\\models\\item\\{block_id}.json", resource_root)
 
-        # 7. 复制材质文件（参考create_item的模式）
         assets_block_path = project.project_dir + f'\\src\\main\\resources\\assets\\{project.mod_id}\\textures\\block\\{block_id}.png'
         print(assets_block_path)
 
@@ -225,7 +241,31 @@ def edit(project):
 
         add_file_to_tree("assets\\%s\\textures\\block\\%s.png" % (project.mod_id, block_id.lower()), resource_root)
 
-        # 8. 更新项目数据（参考create_item的模式）
+        loot_dir = project.project_dir + f"\\src\\main\\resources\\data\\{project.mod_id}\\loot_tables\\blocks"
+        os.makedirs(loot_dir, exist_ok=True)
+        loot_data = {
+            "type": "minecraft:block",
+            "pools": [
+                {
+                    "rolls": 1,
+                    "entries": [
+                        {
+                            "type": "minecraft:item",
+                            "name": f"{project.mod_id}:{block_id}"
+                        }
+                    ],
+                    "conditions": [
+                        {
+                            "condition": "minecraft:survives_explosion"
+                        }
+                    ]
+                }
+            ]
+        }
+        with open(loot_dir + f"\\{block_id}.json", "w", encoding="utf-8") as f:
+            json.dump(loot_data, f, ensure_ascii=False, indent=2)
+        add_file_to_tree(f"data\\{project.mod_id}\\loot_tables\\blocks\\{block_id}.json", resource_root)
+
         project.blocks[block_id] = chinese_name
         project.write_json()
 
@@ -357,13 +397,216 @@ def edit(project):
             lbl2.configure(
                 text="路径：" + project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\item\\ModItems.java")
 
+    def create_recipes():
+        all_ids = list(project.items.keys()) + list(project.blocks.keys())
+        vanilla_items = [
+            "minecraft:stick", "minecraft:cobblestone", "minecraft:oak_planks",
+            "minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:diamond",
+            "minecraft:coal", "minecraft:iron_ore", "minecraft:gold_ore",
+            "minecraft:crafting_table", "minecraft:furnace"
+        ]
+        choose_list = "/" + "/".join(all_ids + vanilla_items)
+
+        res = question("创建新配方", {
+            "输出物品": "choose" + choose_list,
+            "输出数量": "text",
+            "配方类型": "choose/工作台_无位置要求/工作台_有位置要求/熔炉/高炉"
+        })
+
+        if not res:
+            return
+
+        target_id = res["输出物品"]
+        count = res["输出数量"]
+        r_type = res["配方类型"]
+
+        try:
+            count = int(count)
+        except ValueError:
+            msgbox.showerror("创建配方", "输出数量必须是整数")
+            return
+
+        if count <= 0:
+            msgbox.showerror("创建配方", "输出数量必须大于0")
+            return
+
+        recipe_dir = project.project_dir + f"\\src\\main\\resources\\data\\{project.mod_id}\\recipes"
+        os.makedirs(recipe_dir, exist_ok=True)
+
+        recipe_data = None
+        recipe_id = None
+
+        if r_type == "工作台_有位置要求":
+            grid_res = question("设置 3x3 布局 (空=无物品)", {
+                "0,0": "choose/空" + choose_list,
+                "0,1": "choose/空" + choose_list,
+                "0,2": "choose/空" + choose_list,
+                "1,0": "choose/空" + choose_list,
+                "1,1": "choose/空" + choose_list,
+                "1,2": "choose/空" + choose_list,
+                "2,0": "choose/空" + choose_list,
+                "2,1": "choose/空" + choose_list,
+                "2,2": "choose/空" + choose_list,
+            })
+
+            if not grid_res:
+                return
+
+            letters = list("ABCDEFGHI")
+            letter_idx = 0
+            pattern = []
+            key = {}
+
+            for r in range(3):
+                row = ""
+                for c in range(3):
+                    val = grid_res.get(f"{r},{c}", "空")
+                    if val != "空":
+                        row += letters[letter_idx]
+                        key[letters[letter_idx]] = {"item": val}
+                        letter_idx += 1
+                    else:
+                        row += " "
+                pattern.append(row)
+
+            if letter_idx == 0:
+                msgbox.showerror("创建配方", "至少需要一个原料")
+                return
+
+            recipe_id = target_id
+            recipe_data = {
+                "type": "minecraft:crafting_shaped",
+                "pattern": pattern,
+                "key": key,
+                "result": {
+                    "item": target_id,
+                    "count": count
+                }
+            }
+
+        elif r_type == "工作台_无位置要求":
+            ing_res = question("添加原料 (最多9个)", {
+                "原料1": "choose/无" + choose_list,
+                "原料2": "choose/无" + choose_list,
+                "原料3": "choose/无" + choose_list,
+            })
+
+            if not ing_res:
+                return
+
+            ingredients = [{"item": v} for v in ing_res.values() if v != "无"]
+            if not ingredients:
+                msgbox.showerror("创建配方", "至少需要一个原料")
+                return
+
+            recipe_id = target_id
+            recipe_data = {
+                "type": "minecraft:crafting_shapeless",
+                "ingredients": ingredients,
+                "result": {
+                    "item": target_id,
+                    "count": count
+                }
+            }
+
+        elif r_type in ["熔炉", "高炉"]:
+            burn_res = question("烧炼设置", {
+                "输入材料": "choose" + choose_list,
+                "经验值": "text",
+                "烧炼时间": "text"
+            })
+
+            if not burn_res:
+                return
+
+            input_item = burn_res["输入材料"]
+            try:
+                experience = float(burn_res["经验值"])
+            except ValueError:
+                msgbox.showerror("创建配方", "经验值必须是数字")
+                return
+
+            try:
+                cook_time = int(burn_res["烧炼时间"])
+            except ValueError:
+                msgbox.showerror("创建配方", "烧炼时间必须是整数")
+                return
+
+            if cook_time <= 0:
+                msgbox.showerror("创建配方", "烧炼时间必须大于0")
+                return
+
+            recipe_type = "minecraft:smelting" if r_type == "熔炉" else "minecraft:blasting"
+            recipe_id = f"{target_id}_from_{input_item.split(':')[-1]}"
+            recipe_data = {
+                "type": recipe_type,
+                "ingredient": {
+                    "item": input_item
+                },
+                "result": target_id,
+                "experience": experience,
+                "cookingtime": cook_time
+            }
+
+        if recipe_data and recipe_id:
+            lbl2.configure(text="正在创建配方")
+
+            file_path = recipe_dir + f"\\{recipe_id}.json"
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(recipe_data, f, ensure_ascii=False, indent=2)
+
+            add_file_to_tree(f"data\\{project.mod_id}\\recipes\\{recipe_id}.json", resource_root)
+
+            project.recipes[recipe_id] = {
+                "output": target_id,
+                "type": r_type
+            }
+            project.write_json()
+
+            lbl2.configure(text=f"配方 {recipe_id} 创建成功")
+            time.sleep(1)
+            lbl2.configure(text=f"配方文件: {file_path}")
+
+    def delete_recipes():
+        if not project.recipes:
+            msgbox.showinfo("删除配方", "当前没有可删除的配方")
+            return
+
+        recipe_options = "/".join(project.recipes.keys())
+        result = question("删除配方", {"选择要删除的配方": "choose/" + recipe_options})
+        if not result:
+            return
+
+        recipe_id = result.get("选择要删除的配方")
+        if not recipe_id:
+            return
+
+        if not msgbox.askokcancel("删除配方", f"确定要删除配方 '{recipe_id}' 吗？", parent=root):
+            return
+
+        lbl2.configure(text=f"正在删除配方 {recipe_id}")
+
+        recipe_dir = project.project_dir + f"\\src\\main\\resources\\data\\{project.mod_id}\\recipes"
+        file_path = recipe_dir + f"\\{recipe_id}.json"
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                print(e)
+
+        if recipe_id in project.recipes:
+            del project.recipes[recipe_id]
+            project.write_json()
+
+        lbl2.configure(text=f"配方 {recipe_id} 删除成功")
+        time.sleep(1)
+        lbl2.configure(text="就绪")
+
     def delete_block():
-        # 获取所有方块ID
         if not project.blocks:
             msgbox.showinfo("删除方块", "当前没有可删除的方块")
             return
 
-        # 创建选择列表
         block_options = ""
         for block_id in project.blocks.keys():
             block_options += "/" + block_id
@@ -374,13 +617,11 @@ def edit(project):
         if not block_id:
             return
 
-        # 确认删除
         if not msgbox.askokcancel("删除方块", f"确定要删除方块 '{block_id}' 吗？", parent=root):
             return
 
         lbl2.configure(text=f"正在删除方块 {block_id}")
 
-        # 1. 从ModBlocks.java中移除注册
         modblocks_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\block\\ModBlocks.java"
         if os.path.exists(modblocks_path):
             with open(modblocks_path, "r", encoding="utf-8") as f:
@@ -405,7 +646,6 @@ def edit(project):
             with open(modblocks_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 2. 从主类中移除创造模式标签添加
         mainclass_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\{project.mod_id.capitalize()}.java"
         if os.path.exists(mainclass_path):
             with open(mainclass_path, "r", encoding="utf-8") as f:
@@ -415,10 +655,8 @@ def edit(project):
             i = 0
             while i < len(lines):
                 line = lines[i]
-                # 检查是否是包含该方块的if语句块
                 if f"event.accept(ModBlocks.{block_id.upper()})" in line:
-                    # 跳过整个if语句块（通常3行）
-                    i += 3  # 跳过if行、大括号行和accept行
+                    i += 3
                     continue
                 new_lines.append(line)
                 i += 1
@@ -426,7 +664,6 @@ def edit(project):
             with open(mainclass_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 3. 从ModCreativeModeTabs.java中移除
         creative_tabs_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\item\\ModCreativeModeTabs.java"
         if os.path.exists(creative_tabs_path):
             with open(creative_tabs_path, "r", encoding="utf-8") as f:
@@ -440,7 +677,6 @@ def edit(project):
             with open(creative_tabs_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 4. 从语言文件中移除
         en_us_path = project.project_dir + f"\\src\\main\\resources\\assets\\{project.mod_id}\\lang\\en_us.json"
         if os.path.exists(en_us_path):
             with open(en_us_path, "r", encoding="utf-8") as f:
@@ -456,7 +692,6 @@ def edit(project):
             with open(en_us_path, "w", encoding="utf-8") as f:
                 json.dump(lang_data, f, ensure_ascii=False, indent=2)
 
-        # 5. 删除模型和状态文件
         files_to_delete = [
             f"models\\block\\{block_id}.json",
             f"blockstates\\{block_id}.json",
@@ -472,7 +707,6 @@ def edit(project):
                 except:
                     pass
 
-        # 6. 删除材质文件
         texture_path = os.path.join(project.project_dir, "src", "main", "resources", "assets", project.mod_id,
                                     "textures", "block", f"{block_id}.png")
         if os.path.exists(texture_path):
@@ -481,7 +715,14 @@ def edit(project):
             except:
                 pass
 
-        # 7. 从项目数据中移除
+        loot_path = os.path.join(project.project_dir, "src", "main", "resources", "data", project.mod_id,
+                                 "loot_tables", "blocks", f"{block_id}.json")
+        if os.path.exists(loot_path):
+            try:
+                os.remove(loot_path)
+            except:
+                pass
+
         if block_id in project.blocks:
             del project.blocks[block_id]
             project.write_json()
@@ -489,7 +730,6 @@ def edit(project):
         lbl2.configure(text=f"方块 {block_id} 删除成功")
         time.sleep(1)
 
-        # 刷新显示
         text1.configure(state="normal")
         text1.delete(1.0, tk.END)
         if os.path.exists(modblocks_path):
@@ -498,12 +738,10 @@ def edit(project):
                 lbl2.configure(text="路径：" + modblocks_path)
 
     def delete_item():
-        # 获取所有物品ID
         if not project.items:
             msgbox.showinfo("删除物品", "当前没有可删除的物品")
             return
 
-        # 创建选择列表
         item_options = ""
         for item_id in project.items.keys():
             item_options += "/" + item_id
@@ -514,13 +752,11 @@ def edit(project):
         if not item_id:
             return
 
-        # 确认删除
         if not msgbox.askokcancel("删除物品", f"确定要删除物品 '{item_id}' 吗？", parent=root):
             return
 
         lbl2.configure(text=f"正在删除物品 {item_id}")
 
-        # 1. 从ModItems.java中移除注册
         moditems_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\item\\ModItems.java"
         if os.path.exists(moditems_path):
             with open(moditems_path, "r", encoding="utf-8") as f:
@@ -534,7 +770,6 @@ def edit(project):
             with open(moditems_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 2. 从主类中移除创造模式标签添加
         mainclass_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\{project.mod_id.capitalize()}.java"
         if os.path.exists(mainclass_path):
             with open(mainclass_path, "r", encoding="utf-8") as f:
@@ -544,10 +779,8 @@ def edit(project):
             i = 0
             while i < len(lines):
                 line = lines[i]
-                # 检查是否是包含该物品的if语句块
                 if f"event.accept(ModItems.{item_id.upper()})" in line:
-                    # 跳过整个if语句块（通常3行）
-                    i += 3  # 跳过if行、大括号行和accept行
+                    i += 3
                     continue
                 new_lines.append(line)
                 i += 1
@@ -555,7 +788,6 @@ def edit(project):
             with open(mainclass_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 3. 从ModCreativeModeTabs.java中移除
         creative_tabs_path = project.project_dir + f"\\src\\main\\java\\com\\{project.author}\\{project.mod_id}\\item\\ModCreativeModeTabs.java"
         if os.path.exists(creative_tabs_path):
             with open(creative_tabs_path, "r", encoding="utf-8") as f:
@@ -569,7 +801,6 @@ def edit(project):
             with open(creative_tabs_path, "w", encoding="utf-8") as f:
                 f.writelines(new_lines)
 
-        # 4. 从语言文件中移除
         en_us_path = project.project_dir + f"\\src\\main\\resources\\assets\\{project.mod_id}\\lang\\en_us.json"
         if os.path.exists(en_us_path):
             with open(en_us_path, "r", encoding="utf-8") as f:
@@ -585,7 +816,6 @@ def edit(project):
             with open(en_us_path, "w", encoding="utf-8") as f:
                 json.dump(lang_data, f, ensure_ascii=False, indent=2)
 
-        # 5. 删除模型文件
         model_path = os.path.join(project.project_dir, "src", "main", "resources", "assets", project.mod_id, "models",
                                   "item", f"{item_id}.json")
         if os.path.exists(model_path):
@@ -594,7 +824,6 @@ def edit(project):
             except:
                 pass
 
-        # 6. 删除材质文件
         texture_path = os.path.join(project.project_dir, "src", "main", "resources", "assets", project.mod_id,
                                     "textures", "item", f"{item_id}.png")
         if os.path.exists(texture_path):
@@ -603,7 +832,6 @@ def edit(project):
             except:
                 pass
 
-        # 7. 从项目数据中移除
         if item_id in project.items:
             del project.items[item_id]
             project.write_json()
@@ -611,7 +839,6 @@ def edit(project):
         lbl2.configure(text=f"物品 {item_id} 删除成功")
         time.sleep(1)
 
-        # 刷新显示
         text1.configure(state="normal")
         text1.delete(1.0, tk.END)
         if os.path.exists(moditems_path):
@@ -853,7 +1080,7 @@ def edit(project):
     print(docs["name"], docs["mod_id"], docs["author"], docs["description"])
     root = tk.Tk()
     root.title("项目：" + docs["name"])
-    root.geometry("1000x700")
+    root.geometry("1350x700")
     project_java_path = str(
         os.path.join(project.project_dir, "src", "main", "java", "com", docs["author"], docs["mod_id"]))
     project_resources_path = str(os.path.join(project.project_dir, "src", "main", "resources"))
@@ -863,12 +1090,16 @@ def edit(project):
                          command=lambda: threading.Thread(target=create_item, daemon=True).start())
     new_menu.add_command(label="添加方块",
                          command=lambda: threading.Thread(target=create_block, daemon=True).start())
+    new_menu.add_command(label="添加配方",
+                         command=lambda: threading.Thread(target=create_recipes, daemon=True).start())
 
     delete_menu = tk.Menu(root, tearoff=False)
     delete_menu.add_command(label="删除物品",
                             command=lambda: threading.Thread(target=delete_item, daemon=True).start())
     delete_menu.add_command(label="删除方块",
                             command=lambda: threading.Thread(target=delete_block, daemon=True).start())
+    delete_menu.add_command(label="删除配方",
+                         command=lambda: threading.Thread(target=delete_recipes, daemon=True).start())
 
     build_menu = tk.Menu(root, tearoff=False)
     build_menu.add_command(label="重新构建",
@@ -923,22 +1154,29 @@ def edit(project):
     text1.bind("<BackSpace>", add_separator)
     text1.bind("<Tab>", tab_insert)
 
+    sidebar = ai_sidebar.AISidebar(root, project.project_dir)
+    sidebar.project_dir_attr = project.project_dir
+    sidebar.mod_id_attr = project.mod_id
+    sidebar.author_attr = project.author
+    sidebar.java_path_attr = project_java_path
+    sidebar.resources_path_attr = project_resources_path
+
     left_frame.pack(side="left", fill="y")
     lbl1.pack(side="top")
     treeview.pack()
     threading.Thread(target=add_project_file, daemon=True).start()
 
-    # right_frame = tk.Frame(root)
-    # right_frame.pack(side="right", fill="y")
+    sidebar.frame.pack(side="right", fill="y")
+    center_frame.pack(side="left", fill="both", expand=True)
 
-    center_frame.pack(fill="both", expand=True)
     lbl2.pack(side="top", fill="x")
     scrollbar_x.pack(side='bottom', fill='x')
     scrollbar_y.pack(side='right', fill='y')
     text1.pack(fill="both", expand=True)
 
     root.mainloop()
+    print(4)
 
 
 if __name__ == "__main__":
-    edit(project_class.Project("thyids", "thyid", "thyi", "thy"))
+    edit(project_class.Project("thyids", "thyid", "thyi", "thy", blocks={"sdf": "dsf"}))

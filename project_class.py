@@ -1,11 +1,16 @@
 import os
 import json
-import shutil
+import sys
 import zipfile
 import subprocess
 
+def get_real_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
 class Project:
-    def __init__(self, name, mod_id, author, description, project_dir=None, items=None, blocks=None, item_inventories=None):
+    def __init__(self, name, mod_id, author, description, project_dir=None, items=None, blocks=None, item_inventories=None, recipes=None):
         if items is None:
             self.items = {}
         else:
@@ -18,6 +23,10 @@ class Project:
             self.item_inventories = {}
         else:
             self.item_inventories = item_inventories
+        if recipes is None:
+            self.recipes = {}
+        else:
+            self.recipes = recipes
         self.name = name
         self.e = ""
         self.project_name = "TI_" + mod_id
@@ -26,12 +35,12 @@ class Project:
         self.author = author
         self.description = description
         if project_dir is None:
-            self.project_dir = str(os.path.join(os.path.dirname(os.path.abspath(__file__)), "project", self.project_name))
+            self.project_dir = str(os.path.join(get_real_path(), "project", self.project_name))
         else:
             self.project_dir = project_dir
         if not os.path.exists(self.project_dir):
             os.makedirs(self.project_dir)
-            with zipfile.ZipFile(os.path.join(os.path.dirname(os.path.abspath(__file__)), "project.zip"), "r") as zipf:
+            with zipfile.ZipFile(os.path.join(get_real_path(), "project.zip"), "r") as zipf:
                 zipf.extractall(self.project_dir)
             self.write_project_config()
             self.write_json()
@@ -167,18 +176,4 @@ class Project:
         self.write_text(path=config_path, typ="json", key="items", value=self.items)
         self.write_text(path=config_path, typ="json", key="blocks", value=self.blocks)
         self.write_text(path=config_path, typ="json", key="item_inventories", value=self.item_inventories)
-
-
-    def insert_item(self, name, item_id, assets_path, tabs="INGREDIENTS"):
-        if tabs == "INGREDIENTS":
-            self.write_text(r"Ro.java", "// this_insert_wpl", "replace",
-                       "if(event.getTabKey() == CreativeModeTabs.%s){\n            event.accept(ModItems.%s);\n        }\n        // this_insert_wpl" % (
-                           tabs, item_id.upper()))
-        elif tabs in self.item_inventories:
-            pass
-        elif tabs != "NULL":
-            return False
-        shutil.copy(assets_path, os.path.join(self.project_dir, ""))
-        text = f"    public static final RegistryObject<Item> {item_id.upper()} = ITEMS.register(\"{item_id.lower()}\", () -> new Item(new Item.Properties()));\n"
-        self.write_text(r"ModItems.java", text, "insert", x=17)
-        return True
+        self.write_text(path=config_path, typ="json", key="recipes", value=self.recipes)
